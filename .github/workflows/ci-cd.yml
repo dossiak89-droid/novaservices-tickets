@@ -28,3 +28,36 @@ jobs:
 
       - name: Lancer les tests
         run: python -m pytest -q
+
+  docker:
+    name: Image Docker
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Construire l'image
+        run: docker build -t application-tp:ci --build-arg APP_VERSION=${{ github.sha }} .
+
+      - name: Démarrer le conteneur
+        run: docker run -d --name application-tp-ci -p 8080:8000 application-tp:ci
+
+      - name: Attendre /health (60 s maximum)
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/health; then
+              echo
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Le service n'a pas répondu dans le délai imparti"
+          exit 1
+
+      - name: Vérifier /version
+        run: curl -fsS http://localhost:8080/version | grep -q "${{ github.sha }}"
+
+      - name: Afficher les journaux du conteneur
+        if: always()
+        run: docker logs application-tp-ci
