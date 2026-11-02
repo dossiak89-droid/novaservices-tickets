@@ -12,7 +12,7 @@ TICKETS = [
 
 @app.get("/health")
 def health():
-    return jsonify(status="ko"), 500
+    return jsonify(status="ok"), 200
 
 
 @app.get("/version")
